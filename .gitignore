@@ -1,0 +1,8 @@
+# Data files created by the program.
+*.dat
+
+# Eexecutable files
+*.exe
+
+# VSCode folder
+.vscode/
