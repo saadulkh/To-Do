@@ -5,11 +5,15 @@
 #define FILENAME_TASKS "tasks.dat"
 #define FILENAME_TASKS_TEMP "tasks.temp"
 
+// Constants for the types of the update operation
+#define EDIT 0
+#define DELETE 1
+
 // Function for adding new tasks.
 void add_new_task();
 
-// Function for editing existing tasks.
-void edit_task();
+// Function for updateing existing tasks.
+void update_task(int);
 
 // Function for viewing existing tasks.
 void view_tasks();
@@ -33,8 +37,18 @@ int main()
 
         printf("\n");
 
-        // Editting existing task.
-        edit_task();
+        // updateting existing task.
+        update_task(EDIT);
+
+        printf("\n");
+
+        // Viewing existing tasks.
+        view_tasks();
+
+        printf("\n");
+
+        // updateting existing task.
+        update_task(DELETE);
 
         printf("\n");
 
@@ -80,19 +94,18 @@ void add_new_task()
 }
 
 /**
- * Edits existing task from the data file.
+ * Updates i.e. edits or deletes the existing task from the data file.
 */
-void edit_task()
+void update_task(int type)
 {
-    // Stores number of the task that is to be editted.
+    // Stores number of the task that is to be updated.
     int task_no;
 
-    // Stores whether any task was edited or not.
-    bool is_edited = false;
+    // Stores whether any task was updated or not.
+    bool is_updated = false;
 
-    // Store old/new titles of the task.
-    char old_title[60];
-    char new_title[60];
+    // Stores current title of the task.
+    char current_title[60];
 
     // Opening the old data file in read mode &
     // the new data file in write mode & storing their pointers.
@@ -106,34 +119,54 @@ void edit_task()
         printf("Error while accessing data.\n");
     }
 
-    // Prompting user to edit existing task.
-    printf("Edit task:\n");
+    // Checking which type of operation is needed to be performed.
+    if (EDIT == type)
+    {
+        // Prompting user to edit existing task.
+        printf("Edit task:\n");
 
-    // Getting task number of the task that is to be editted & storing it.
-    printf("Enter the no. of the task you want to edit: ");
-    scanf("%d", &task_no);
+        // Getting task number of the task that is to be edited & storing it.
+        printf("Enter the no. of the task you want to edit: ");
+        scanf("%d", &task_no);
+    }
+    else if (DELETE == type)
+    {
+        // Prompting user to delete existing task.
+        printf("Delete task:\n");
+
+        // Getting task number of the task that is to be deleted & storing it.
+        printf("Enter the no. of the task you want to delete: ");
+        scanf("%d", &task_no);
+    }
 
     // Looping to get data from the file till the end of the file.
-    for (int i = 1; fscanf(oldfptr, "%59[^,], ", old_title) != EOF; i++)
+    for (int i = 1; fscanf(oldfptr, "%59[^,], ", current_title) != EOF; i++)
     {
-        // Checking if the current task is to be edited or not.
+        // Checking whether the current task is to be updated or not.
         if (i == task_no)
         {
-            // Getting new title of the task.
-            printf("Enter new title: ");
-            scanf("%c"); // For ignoring new-line character from previous scanf call.
-            scanf("%59[^\n]", new_title);
+            // Checking which type of operation is needed to be performed.
+            if (EDIT == type)
+            {
+                // Stores new title of the task.
+                char new_title[60];
 
-            // Saving new task data in the file.
-            fprintf(newfptr, "%s, \n", new_title);
+                // Getting new title of the task.
+                printf("Enter new title: ");
+                scanf("%c"); // For ignoring new-line character from previous scanf call.
+                scanf("%59[^\n]", new_title);
 
-            // Storing that task was edited.
-            is_edited = true;
+                // Saving new task data in the file.
+                fprintf(newfptr, "%s, \n", new_title);
+            }
+
+            // Storing that the task was updated.
+            is_updated = true;
         }
         else
         {
-            // Saving old task data in the file.
-            fprintf(newfptr, "%s, \n", old_title);
+            // Saving current task data in new file.
+            fprintf(newfptr, "%s, \n", current_title);
         }
     }
 
@@ -141,21 +174,16 @@ void edit_task()
     fclose(oldfptr);
     fclose(newfptr);
 
-    // Checking whether changes are needed to be applied or not.
-    if (is_edited)
+    // Checking whether the task was updated or not.
+    if (!is_updated)
     {
-        // Applying changes.
-        remove(FILENAME_TASKS);
-        rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
-    }
-    else
-    {
-        // Removeing temp file.
-        remove(FILENAME_TASKS_TEMP);
-
         // Displaying error msg that no task was found.
         printf("Sorry! No task found.\n");
     }
+
+    // Applying changes.
+    remove(FILENAME_TASKS);
+    rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
 }
 
 /**
