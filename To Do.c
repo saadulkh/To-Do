@@ -1,21 +1,60 @@
 #include <stdio.h>
+#include <stdbool.h> // For 'bool' data type.
 
 // Constant for the filename.
 #define FILENAME_TASKS "tasks.dat"
+#define FILENAME_TASKS_TEMP "tasks.temp"
+
+// Constants for the types of the update operation
+#define EDIT 0
+#define DELETE 1
 
 // Function for adding new tasks.
 void add_new_task();
+
+// Function for updateing existing tasks.
+void update_task(int);
 
 // Function for viewing existing tasks.
 void view_tasks();
 
 int main()
 {
-    // Adding a new task.
-    add_new_task();
+    // Temporary interface
+    {
+        // Viewing existing tasks.
+        view_tasks();
 
-    // Viewing existing tasks.
-    view_tasks();
+        printf("\n");
+
+        // Adding a new task.
+        add_new_task();
+
+        printf("\n");
+
+        // Viewing existing tasks.
+        view_tasks();
+
+        printf("\n");
+
+        // updateting existing task.
+        update_task(EDIT);
+
+        printf("\n");
+
+        // Viewing existing tasks.
+        view_tasks();
+
+        printf("\n");
+
+        // updateting existing task.
+        update_task(DELETE);
+
+        printf("\n");
+
+        // Viewing existing tasks.
+        view_tasks();
+    }
 
     system("pause");
 
@@ -40,11 +79,11 @@ void add_new_task()
     // Opening the data file in append mode & storing its pointer.
     FILE *fptr = fopen(FILENAME_TASKS, "a");
 
-    // Checking for any error during opening file.
+    // Checking for any error while opening file.
     if (fptr == NULL)
     {
         // Displaying error.
-        printf("Error while accessing data.");
+        printf("Error while accessing data.\n");
     }
 
     // Saving task data in the file.
@@ -55,7 +94,100 @@ void add_new_task()
 }
 
 /**
- * Views existing tasks in the data file.
+ * Updates i.e. edits or deletes the existing task from the data file.
+*/
+void update_task(int type)
+{
+    // Stores number of the task that is to be updated.
+    int task_no;
+
+    // Stores whether any task was updated or not.
+    bool is_updated = false;
+
+    // Stores current title of the task.
+    char current_title[60];
+
+    // Opening the old data file in read mode &
+    // the new data file in write mode & storing their pointers.
+    FILE *oldfptr = fopen(FILENAME_TASKS, "r");
+    FILE *newfptr = fopen(FILENAME_TASKS_TEMP, "w");
+
+    // Checking for any error while opening files.
+    if (oldfptr == NULL || newfptr == NULL)
+    {
+        // Displaying error.
+        printf("Error while accessing data.\n");
+    }
+
+    // Checking which type of operation is needed to be performed.
+    if (EDIT == type)
+    {
+        // Prompting user to edit existing task.
+        printf("Edit task:\n");
+
+        // Getting task number of the task that is to be edited & storing it.
+        printf("Enter the no. of the task you want to edit: ");
+        scanf("%d", &task_no);
+    }
+    else if (DELETE == type)
+    {
+        // Prompting user to delete existing task.
+        printf("Delete task:\n");
+
+        // Getting task number of the task that is to be deleted & storing it.
+        printf("Enter the no. of the task you want to delete: ");
+        scanf("%d", &task_no);
+    }
+
+    // Looping to get data from the file till the end of the file.
+    for (int i = 1; fscanf(oldfptr, "%59[^,], ", current_title) != EOF; i++)
+    {
+        // Checking whether the current task is to be updated or not.
+        if (i == task_no)
+        {
+            // Checking which type of operation is needed to be performed.
+            if (EDIT == type)
+            {
+                // Stores new title of the task.
+                char new_title[60];
+
+                // Getting new title of the task.
+                printf("Enter new title: ");
+                scanf("%c"); // For ignoring new-line character from previous scanf call.
+                scanf("%59[^\n]", new_title);
+
+                // Saving new task data in the file.
+                fprintf(newfptr, "%s, \n", new_title);
+            }
+
+            // Storing that the task was updated.
+            is_updated = true;
+        }
+        else
+        {
+            // Saving current task data in new file.
+            fprintf(newfptr, "%s, \n", current_title);
+        }
+    }
+
+    // Closing the data files to release allocated memory.
+    fclose(oldfptr);
+    fclose(newfptr);
+
+    // Checking whether the task was updated or not.
+    if (!is_updated)
+    {
+        // Displaying error msg that no task was found.
+        printf("Sorry! No task found.\n");
+    }
+
+    // Applying changes.
+    remove(FILENAME_TASKS);
+    rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
+}
+
+/**
+ * Views existing tasks from the data file.
 */
 void view_tasks()
 {
@@ -65,15 +197,15 @@ void view_tasks()
     // Opening the data file in read mode & storing its pointer.
     FILE *fptr = fopen(FILENAME_TASKS, "r");
 
-    // Checking for any error during opening file.
+    // Checking for any error while opening file.
     if (fptr == NULL)
     {
         // Displaying error.
-        printf("Error while accessing data.");
+        printf("Error while accessing data.\n");
     }
 
     // Prompting user to view existing tasks.
-    printf("\nCurrent tasks:\n");
+    printf("Current tasks:\n");
 
     // Looping to get data from the file till the end of the file.
     while (fscanf(fptr, "%59[^,], ", title) != EOF)
