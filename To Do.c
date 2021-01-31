@@ -3,7 +3,7 @@
 
 // Constant for the filename.
 #define FILENAME_TASKS "tasks.dat"
-#define FILENAME_TASKS_TEMP "tasks.temp"
+#define FILENAME_TASKS_TEMP "tasks.tmp"
 
 // Constants for the types of the update operation
 #define EDIT 0
