@@ -13,11 +13,11 @@
 */
 void printcharln(int current_pos, int terminal_pos, char character, char extreme_char)
 {
-    for (int pos = 1 + current_pos; pos <= terminal_pos + 1; pos++)
+    for (current_pos++; current_pos <= terminal_pos + 1; current_pos++)
     {
-        printf("%c", pos == terminal_pos + 1
+        printf("%c", current_pos == terminal_pos + 1
                          ? '\n'
-                         : (pos == 1 || pos == terminal_pos)
+                         : (current_pos == 1 || current_pos == terminal_pos)
                                ? extreme_char
                                : character);
     }
