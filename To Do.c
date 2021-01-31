@@ -237,7 +237,7 @@ void view_tasks()
         printcharln(0, WIDTH_LIST, ' ', '|');
 
         // Displaying task no. and the task title.
-        printf("| #%-2d %s", task_no, title);
+        printf("| #%02d %s", task_no, title);
         printcharln(6 + length_title, WIDTH_LIST, ' ', '|');
 
         // Displaying bottom horizontal line of the list.
