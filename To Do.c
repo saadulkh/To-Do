@@ -1,5 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>  // General purpose standard library
 #include <stdbool.h> // For 'bool' data type.
+#include <string.h>  // For working with strings.
+
+#include "Utils.c" // Contains utility functions.
 
 // Constant for the filename.
 #define FILENAME_TASKS "tasks.dat"
@@ -8,6 +12,10 @@
 // Constants for the types of the update operation
 #define EDIT 0
 #define DELETE 1
+
+// Constants for sizes in characters.
+#define LENGTH_TITLE_MAX 60
+#define WIDTH_LIST (LENGTH_TITLE_MAX + 4 + 4)
 
 // Function for adding new tasks.
 void add_new_task();
@@ -67,14 +75,14 @@ int main()
 void add_new_task()
 {
     // Stores title of the task.
-    char title[60];
+    char title[LENGTH_TITLE_MAX + 1]; // Increment of '1' because the last index of string always contains '\0'.
 
     // Prompting user to add a task.
     printf("Add new task:\n");
 
     // Getting title from the user.
     printf("Title: ");
-    scanf("%59[^\n]", title);
+    scanf("%60[^\n]", title);
 
     // Opening the data file in append mode & storing its pointer.
     FILE *fptr = fopen(FILENAME_TASKS, "a");
@@ -105,7 +113,7 @@ void update_task(int type)
     bool is_updated = false;
 
     // Stores current title of the task.
-    char current_title[60];
+    char current_title[LENGTH_TITLE_MAX + 1];
 
     // Opening the old data file in read mode &
     // the new data file in write mode & storing their pointers.
@@ -149,12 +157,12 @@ void update_task(int type)
             if (EDIT == type)
             {
                 // Stores new title of the task.
-                char new_title[60];
+                char new_title[LENGTH_TITLE_MAX + 1];
 
                 // Getting new title of the task.
                 printf("Enter new title: ");
                 scanf("%c"); // For ignoring new-line character from previous scanf call.
-                scanf("%59[^\n]", new_title);
+                scanf("%60[^\n]", new_title);
 
                 // Saving new task data in the file.
                 fprintf(newfptr, "%s, \n", new_title);
@@ -191,8 +199,11 @@ void update_task(int type)
 */
 void view_tasks()
 {
+    // Clearing screen.
+    system("cls || clear");
+
     // Stores title of the task.
-    char title[60];
+    char title[LENGTH_TITLE_MAX + 1];
 
     // Opening the data file in read mode & storing its pointer.
     FILE *fptr = fopen(FILENAME_TASKS, "r");
@@ -207,11 +218,30 @@ void view_tasks()
     // Prompting user to view existing tasks.
     printf("Current tasks:\n");
 
-    // Looping to get data from the file till the end of the file.
-    while (fscanf(fptr, "%59[^,], ", title) != EOF)
+    // Displaying top horizontal line of the list.
+    printcharln(0, WIDTH_LIST, '_', ' ');
+
+    // Iterating throught tasks in file.
+    for (int task_no = 1; fscanf(fptr, "%[^,], ", title) != EOF; task_no++)
     {
-        // Displying tasks to the user.
-        printf("%s\n", title);
+        // Stores length of the title.
+        int length_title = strlen(title);
+
+        // Ignore task when title length is greater than equal to the max title length possible.
+        if (LENGTH_TITLE_MAX < length_title)
+        {
+            continue;
+        }
+
+        // Displaying empty line for some space between tasks.
+        printcharln(0, WIDTH_LIST, ' ', '|');
+
+        // Displaying task no. and the task title.
+        printf("| #%02d %s", task_no, title);
+        printcharln(6 + length_title, WIDTH_LIST, ' ', '|');
+
+        // Displaying bottom horizontal line of the list.
+        printcharln(0, WIDTH_LIST, '_', '|');
     }
 
     // Closing the data file to release allocated memory.
