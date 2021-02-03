@@ -1,7 +1,11 @@
 # Data files created by the program.
 *.dat
 
-# Eexecutable files
+# Temporary files
+*.tmp
+
+# Compiled files
+todo
 *.exe
 
 # VSCode folder
