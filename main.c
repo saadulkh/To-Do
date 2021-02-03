@@ -3,7 +3,7 @@
 #include <stdbool.h> // For 'bool' data type.
 #include <string.h>  // For working with strings.
 
-#include "Utils.c" // Contains utility functions.
+#include "utils.c" // Contains utility functions.
 
 // Constant for the filename.
 #define FILENAME_TASKS "tasks.dat"
