@@ -2,248 +2,285 @@
 #include <stdlib.h>  // General purpose standard library
 #include <stdbool.h> // For 'bool' data type.
 #include <string.h>  // For working with strings.
+#include <ctype.h>   // For type checks.
 
-#include "utils.c" // Contains utility functions.
+#include "tasks.c" // For hadling tasks.
 
-// Constant for the filename.
-#define FILENAME_TASKS "tasks.dat"
-#define FILENAME_TASKS_TEMP "tasks.tmp"
+const char COMMAND_VERSION[3][10] = {"version", "-v", "--version"};
+const char COMMAND_HELP[3][7] = {"help", "-h", "--help"};
 
-// Constants for the types of the update operation
-#define EDIT 0
-#define DELETE 1
+const char OPTION_ALL[2][6] = {"-a", "--all"};
 
-// Constants for sizes in characters.
-#define LENGTH_TITLE_MAX 60
-#define WIDTH_LIST (LENGTH_TITLE_MAX + 4 + 4)
+#define NAME "todo"
+#define VERSION NAME " 1.0.0"
 
-// Function for adding new tasks.
-void add_new_task();
+#define USAGE_COMMAND_ADD "add             Add new task to the list."
+#define USAGE_COMMAND_EDIT "edit            Edit existing task."
+#define USAGE_COMMAND_REMOVE "remove          Remove task from the list."
+#define USAGE_COMMAND_LIST "list            Show tasks list."
+#define USAGE_COMMAND_VERSION "version         See version of " NAME "."
+#define USAGE_COMMAND_HELP "help            See this help."
 
-// Function for updateing existing tasks.
-void update_task(int);
+#define USAGE_OPTION_NUMBER "{NUMBER}        Task no/position of the task in the list."
+#define USAGE_OPTION_TITLE "{TITLE}         Title of the task.\n\
+                    Number/digit at the start is not allowed.\n\
+                    Multiple titles in batches are allowed."
+#define USAGE_OPTION_ALL "-a --all        Perform operation on all tasks."
+#define USAGE_OPTION_VERSION "-v --version    See version of " NAME "."
+#define USAGE_OPTION_HELP "-h --help       See this help."
 
-// Function for viewing existing tasks.
-void view_tasks();
+#define USAGE_ADD "Usage: " NAME " " COMMAND_ADD " [options...]\n\
+\n\
+Command\n\
+   " USAGE_COMMAND_ADD "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_NUMBER "\n\
+    " USAGE_OPTION_TITLE "\n\
+    " USAGE_OPTION_HELP "\n"
 
-int main()
+#define USAGE_EDIT "Usage: " NAME " " COMMAND_EDIT " [options...]\n\
+\n\
+Command\n\
+   " USAGE_COMMAND_EDIT "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_NUMBER "\n\
+    " USAGE_OPTION_TITLE "\n\
+    " USAGE_OPTION_ALL "\n\
+    " USAGE_OPTION_HELP "\n"
+
+#define USAGE_REMOVE "Usage: " NAME " " COMMAND_REMOVE " [options...]\n\
+\n\
+Command\n\
+   " USAGE_COMMAND_REMOVE "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_NUMBER "\n\
+    " USAGE_OPTION_ALL "\n\
+    " USAGE_OPTION_HELP "\n"
+
+#define USAGE_LIST "Usage: " NAME " " COMMAND_LIST " [options...]\n\
+\n\
+Command\n\
+   " USAGE_COMMAND_LIST "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_HELP "\n"
+
+#define USAGE "Usage: " NAME " [--help], [-h],\n\
+            [--version], [-v],\n\
+            <command> [options...]\n\
+\n\
+Enter 'exit', when prompted anything, to ignore command.\n\
+\n\
+Commands\n\
+    " USAGE_COMMAND_ADD "\n\
+    " USAGE_COMMAND_EDIT "\n\
+    " USAGE_COMMAND_REMOVE "\n\
+    " USAGE_COMMAND_HELP "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_NUMBER "\n\
+    " USAGE_OPTION_TITLE "\n\
+    " USAGE_OPTION_ALL "\n\
+    " USAGE_OPTION_VERSION "\n\
+    " USAGE_OPTION_HELP "\n"
+
+void handle_args(int argc, char const *argv[])
 {
-    // Temporary interface
+    if (argc >= 2)
     {
-        // Viewing existing tasks.
-        view_tasks();
+        CMD cmd;
+        strcpy(cmd.name, NULL_STR);
 
-        printf("\n");
+        Task task;
 
-        // Adding a new task.
-        add_new_task();
+        init_task(&task);
 
-        printf("\n");
-
-        // Viewing existing tasks.
-        view_tasks();
-
-        printf("\n");
-
-        // updateting existing task.
-        update_task(EDIT);
-
-        printf("\n");
-
-        // Viewing existing tasks.
-        view_tasks();
-
-        printf("\n");
-
-        // updateting existing task.
-        update_task(DELETE);
-
-        printf("\n");
-
-        // Viewing existing tasks.
-        view_tasks();
-    }
-
-    system("pause");
-
-    return 0;
-}
-
-/**
- * Adds a new task in the data file.
-*/
-void add_new_task()
-{
-    // Stores title of the task.
-    char title[LENGTH_TITLE_MAX + 1]; // Increment of '1' because the last index of string always contains '\0'.
-
-    // Prompting user to add a task.
-    printf("Add new task:\n");
-
-    // Getting title from the user.
-    printf("Title: ");
-    scanf("%60[^\n]", title);
-
-    // Opening the data file in append mode & storing its pointer.
-    FILE *fptr = fopen(FILENAME_TASKS, "a");
-
-    // Checking for any error while opening file.
-    if (fptr == NULL)
-    {
-        // Displaying error.
-        printf("Error while accessing data.\n");
-    }
-
-    // Saving task data in the file.
-    fprintf(fptr, "%s, \n", title);
-
-    // Closing the data file to release allocated memory.
-    fclose(fptr);
-}
-
-/**
- * Updates i.e. edits or deletes the existing task from the data file.
-*/
-void update_task(int type)
-{
-    // Stores number of the task that is to be updated.
-    int task_no;
-
-    // Stores whether any task was updated or not.
-    bool is_updated = false;
-
-    // Stores current title of the task.
-    char current_title[LENGTH_TITLE_MAX + 1];
-
-    // Opening the old data file in read mode &
-    // the new data file in write mode & storing their pointers.
-    FILE *oldfptr = fopen(FILENAME_TASKS, "r");
-    FILE *newfptr = fopen(FILENAME_TASKS_TEMP, "w");
-
-    // Checking for any error while opening files.
-    if (oldfptr == NULL || newfptr == NULL)
-    {
-        // Displaying error.
-        printf("Error while accessing data.\n");
-    }
-
-    // Checking which type of operation is needed to be performed.
-    if (EDIT == type)
-    {
-        // Prompting user to edit existing task.
-        printf("Edit task:\n");
-
-        // Getting task number of the task that is to be edited & storing it.
-        printf("Enter the no. of the task you want to edit: ");
-        scanf("%d", &task_no);
-    }
-    else if (DELETE == type)
-    {
-        // Prompting user to delete existing task.
-        printf("Delete task:\n");
-
-        // Getting task number of the task that is to be deleted & storing it.
-        printf("Enter the no. of the task you want to delete: ");
-        scanf("%d", &task_no);
-    }
-
-    // Looping to get data from the file till the end of the file.
-    for (int i = 1; fscanf(oldfptr, "%59[^,], ", current_title) != EOF; i++)
-    {
-        // Checking whether the current task is to be updated or not.
-        if (i == task_no)
+        for (int i = 1; i < argc; i++)
         {
-            // Checking which type of operation is needed to be performed.
-            if (EDIT == type)
+            if (strcmp(cmd.name, COMMAND_HELP[0]) == 0)
             {
-                // Stores new title of the task.
-                char new_title[LENGTH_TITLE_MAX + 1];
+                if (strcmp(argv[i], COMMAND_ADD) == 0)
+                {
+                    printf("%s\n", USAGE_ADD);
+                }
+                else if (strcmp(argv[i], COMMAND_EDIT) == 0)
+                {
+                    printf("%s\n", USAGE_EDIT);
+                }
+                else if (strcmp(argv[i], COMMAND_REMOVE) == 0)
+                {
+                    printf("%s\n", USAGE_REMOVE);
+                }
+                else if (strcmp(argv[i], COMMAND_LIST) == 0)
+                {
+                    printf("%s\n", USAGE_LIST);
+                }
 
-                // Getting new title of the task.
-                printf("Enter new title: ");
-                scanf("%c"); // For ignoring new-line character from previous scanf call.
-                scanf("%60[^\n]", new_title);
-
-                // Saving new task data in the file.
-                fprintf(newfptr, "%s, \n", new_title);
+                exit(EXIT_SUCCESS);
             }
+            else if (strcmp(argv[i], COMMAND_ADD) == 0 ||
+                     strcmp(argv[i], COMMAND_EDIT) == 0 ||
+                     strcmp(argv[i], COMMAND_REMOVE) == 0)
+            {
+                if (!isnull(cmd.name))
+                {
+                    update_tasks(cmd, &task);
+                    init_task(&task);
+                }
 
-            // Storing that the task was updated.
-            is_updated = true;
+                strcpy(cmd.name, argv[i]);
+            }
+            else if (isdigit(argv[i][0]))
+            {
+                if (task.id != NULL_INT)
+                {
+                    update_tasks(cmd, &task);
+                    init_task(&task);
+                }
+
+                task.id = atoi(argv[i]);
+            }
+            else if (argv[i][0] == '-')
+            {
+                bool is_option = false;
+
+                for (int j = 0; j < 2; j++)
+                {
+                    if (strcmp(argv[i], OPTION_ALL[j]) == 0)
+                    {
+                        cmd.is_all = true;
+                        is_option = true;
+                        break;
+                    }
+                    else if (isnull(cmd.name) && strcmp(argv[i], COMMAND_VERSION[j + 1]) == 0)
+                    {
+                        printf("%s\n", VERSION);
+                        exit(EXIT_SUCCESS);
+                    }
+                    else if (strcmp(argv[i], COMMAND_HELP[j + 1]) == 0)
+                    {
+                        if (isnull(cmd.name))
+                        {
+                            strcpy(cmd.name, COMMAND_HELP[0]);
+                            is_option = true;
+                            break;
+                        }
+                        else if (strcmp(cmd.name, COMMAND_ADD) == 0)
+                        {
+                            printf("%s", USAGE_ADD);
+                            exit(EXIT_FAILURE);
+                        }
+                        else if (strcmp(cmd.name, COMMAND_EDIT) == 0)
+                        {
+                            printf("%s", USAGE_EDIT);
+                            exit(EXIT_FAILURE);
+                        }
+                        else if (strcmp(cmd.name, COMMAND_REMOVE) == 0)
+                        {
+                            printf("%s", USAGE_REMOVE);
+                            exit(EXIT_FAILURE);
+                        }
+                        else if (strcmp(cmd.name, COMMAND_LIST) == 0)
+                        {
+                            printf("%s", USAGE_LIST);
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
+
+                if (!is_option)
+                {
+                    printf("%s: option not available\nUse '%s help %s' to see available options.\n",
+                           argv[i], NAME, !isnull(cmd.name) ? cmd.name : "\b");
+
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else if (strcmp(cmd.name, COMMAND_ADD) == 0)
+            {
+                if (!isnull(task.title))
+                {
+                    update_tasks(cmd, &task);
+                    int id_task = task.id;
+                    init_task(&task);
+
+                    if (id_task != 0)
+                        task.id = ++id_task;
+                }
+
+                strcpy(task.title, argv[i]);
+            }
+            else if (strcmp(cmd.name, COMMAND_EDIT) == 0)
+            {
+                if (!isnull(task.title))
+                {
+                    update_tasks(cmd, &task);
+                    init_task(&task);
+                }
+
+                strcpy(task.title, argv[i]);
+            }
+            else
+            {
+                if (strcmp(argv[i], COMMAND_LIST) == 0)
+                {
+                    strcpy(cmd.name, COMMAND_LIST);
+                }
+                else if (strcmp(argv[i], COMMAND_HELP[0]) == 0)
+                {
+                    strcpy(cmd.name, COMMAND_HELP[0]);
+                }
+                else if (strcmp(argv[i], COMMAND_VERSION[0]) == 0)
+                {
+                    printf("%s\n", VERSION);
+                    exit(EXIT_SUCCESS);
+                }
+                else
+                {
+                    printf("%s: command not found\nUse '%s help' to see available commands.\n",
+                           argv[i], NAME);
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+
+        if (strcmp(cmd.name, COMMAND_LIST) == 0)
+        {
+            list_tasks();
+        }
+        else if (strcmp(cmd.name, COMMAND_HELP[0]) == 0)
+        {
+            printf("%s\n", USAGE);
+        }
+        else if (!isnull(cmd.name))
+        {
+            update_tasks(cmd, &task);
+        }
+    }
+    else
+    {
+        FILE *fptr = fopen(FILENAME_TASKS, "r");
+
+        if (fptr == NULL)
+        {
+            fptr = fopen(FILENAME_TASKS, "w");
+            fclose(fptr);
+
+            printf("%s\n", USAGE);
         }
         else
         {
-            // Saving current task data in new file.
-            fprintf(newfptr, "%s, \n", current_title);
+            list_tasks();
         }
     }
-
-    // Closing the data files to release allocated memory.
-    fclose(oldfptr);
-    fclose(newfptr);
-
-    // Checking whether the task was updated or not.
-    if (!is_updated)
-    {
-        // Displaying error msg that no task was found.
-        printf("Sorry! No task found.\n");
-    }
-
-    // Applying changes.
-    remove(FILENAME_TASKS);
-    rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
 }
 
-/**
- * Views existing tasks from the data file.
-*/
-void view_tasks()
+int main(int argc, char const *argv[])
 {
-    // Clearing screen.
-    system("cls || clear");
+    handle_args(argc, argv);
 
-    // Stores title of the task.
-    char title[LENGTH_TITLE_MAX + 1];
-
-    // Opening the data file in read mode & storing its pointer.
-    FILE *fptr = fopen(FILENAME_TASKS, "r");
-
-    // Checking for any error while opening file.
-    if (fptr == NULL)
-    {
-        // Displaying error.
-        printf("Error while accessing data.\n");
-    }
-
-    // Prompting user to view existing tasks.
-    printf("Current tasks:\n");
-
-    // Displaying top horizontal line of the list.
-    printcharln(0, WIDTH_LIST, '_', ' ');
-
-    // Iterating throught tasks in file.
-    for (int task_no = 1; fscanf(fptr, "%[^,], ", title) != EOF; task_no++)
-    {
-        // Stores length of the title.
-        int length_title = strlen(title);
-
-        // Ignore task when title length is greater than equal to the max title length possible.
-        if (LENGTH_TITLE_MAX < length_title)
-        {
-            continue;
-        }
-
-        // Displaying empty line for some space between tasks.
-        printcharln(0, WIDTH_LIST, ' ', '|');
-
-        // Displaying task no. and the task title.
-        printf("| #%02d %s", task_no, title);
-        printcharln(6 + length_title, WIDTH_LIST, ' ', '|');
-
-        // Displaying bottom horizontal line of the list.
-        printcharln(0, WIDTH_LIST, '_', '|');
-    }
-
-    // Closing the data file to release allocated memory.
-    fclose(fptr);
+    return 0;
 }
