@@ -85,7 +85,9 @@ Options\n\
     " USAGE_OPTION_TITLE "\n\
     " USAGE_OPTION_ALL "\n\
     " USAGE_OPTION_VERSION "\n\
-    " USAGE_OPTION_HELP "\n"
+    " USAGE_OPTION_HELP "\n\
+\n\
+Use '" NAME " help <command>' to see help for any command.\n"
 
 void handle_args(int argc, char const *argv[])
 {
@@ -117,6 +119,11 @@ void handle_args(int argc, char const *argv[])
                 else if (strcmp(argv[i], COMMAND_LIST) == 0)
                 {
                     printf("%s\n", USAGE_LIST);
+                }
+                else
+                {
+                    printf("%s: command not found\nUse '%s help' to see available commands.\n",
+                           argv[i], NAME);
                 }
 
                 exit(EXIT_SUCCESS);
