@@ -9,22 +9,25 @@
 const char COMMAND_VERSION[3][10] = {"version", "-v", "--version"};
 const char COMMAND_HELP[3][7] = {"help", "-h", "--help"};
 
+const char OPTION_DONE[2][7] = {"-d", "--done"};
 const char OPTION_ALL[2][6] = {"-a", "--all"};
 
 #define NAME "todo"
 #define VERSION NAME " 1.0.0"
 
-#define USAGE_COMMAND_ADD "add             Add new task to the list."
+#define USAGE_COMMAND_ADD "add             Add new task to the list.\n\
+                    Multiple titles in batches are allowed."
 #define USAGE_COMMAND_EDIT "edit            Edit existing task."
 #define USAGE_COMMAND_REMOVE "remove          Remove task from the list."
 #define USAGE_COMMAND_LIST "list            Show tasks list."
+#define USAGE_COMMAND_DONE "done            Mark a task as done.\n\
+                    Multiple task numbers in batches are allowed."
 #define USAGE_COMMAND_VERSION "version         See version of " NAME "."
 #define USAGE_COMMAND_HELP "help            See this help."
 
 #define USAGE_OPTION_NUMBER "{NUMBER}        Task no/position of the task in the list."
 #define USAGE_OPTION_TITLE "{TITLE}         Title of the task.\n\
-                    Number/digit at the start is not allowed.\n\
-                    Multiple titles in batches are allowed."
+                    Number/digit at the start is not allowed."
 #define USAGE_OPTION_ALL "-a --all        Perform operation on all tasks."
 #define USAGE_OPTION_VERSION "-v --version    See version of " NAME "."
 #define USAGE_OPTION_HELP "-h --help       See this help."
@@ -68,6 +71,16 @@ Command\n\
 Options\n\
     " USAGE_OPTION_HELP "\n"
 
+#define USAGE_DONE "Usage: " NAME " " COMMAND_DONE " [options...]\n\
+\n\
+Command\n\
+   " USAGE_COMMAND_DONE "\n\
+\n\
+Options\n\
+    " USAGE_OPTION_NUMBER "\n\
+    " USAGE_OPTION_ALL "\n\
+    " USAGE_OPTION_HELP "\n"
+
 #define USAGE "Usage: " NAME " [--help], [-h],\n\
             [--version], [-v],\n\
             <command> [options...]\n\
@@ -78,6 +91,8 @@ Commands\n\
     " USAGE_COMMAND_ADD "\n\
     " USAGE_COMMAND_EDIT "\n\
     " USAGE_COMMAND_REMOVE "\n\
+    " USAGE_COMMAND_LIST "\n\
+    " USAGE_COMMAND_DONE "\n\
     " USAGE_COMMAND_HELP "\n\
 \n\
 Options\n\
@@ -91,11 +106,11 @@ Use '" NAME " help <command>' to see help for any command.\n"
 
 void handle_args(int argc, char const *argv[])
 {
+    CMD cmd;
+    strcpy(cmd.name, NULL_STR);
+
     if (argc >= 2)
     {
-        CMD cmd;
-        strcpy(cmd.name, NULL_STR);
-
         Task task;
 
         init_task(&task);
@@ -120,6 +135,10 @@ void handle_args(int argc, char const *argv[])
                 {
                     printf("%s\n", USAGE_LIST);
                 }
+                else if (strcmp(argv[i], COMMAND_DONE) == 0)
+                {
+                    printf("%s\n", USAGE_DONE);
+                }
                 else
                 {
                     printf("%s: command not found\nUse '%s help' to see available commands.\n",
@@ -140,12 +159,26 @@ void handle_args(int argc, char const *argv[])
 
                 strcpy(cmd.name, argv[i]);
             }
+            else if (strcmp(argv[i], COMMAND_DONE) == 0)
+            {
+                if (!isnull(cmd.name))
+                {
+                    update_tasks(&cmd, &task);
+                    init_task(&task);
+                }
+
+                strcpy(cmd.name, argv[i]);
+            }
             else if (isdigit(argv[i][0]))
             {
                 if (task.id != NULL_INT)
                 {
                     update_tasks(&cmd, &task);
+                    int id_task = task.id; // For 'done' command.
                     init_task(&task);
+
+                    if (id_task != 0)
+                        task.id = ++id_task;
                 }
 
                 task.id = atoi(argv[i]);
@@ -156,7 +189,13 @@ void handle_args(int argc, char const *argv[])
 
                 for (int j = 0; j < 2; j++)
                 {
-                    if (strcmp(argv[i], OPTION_ALL[j]) == 0)
+                    if (strcmp(argv[i], OPTION_DONE[j]) == 0)
+                    {
+                        cmd.is_done = true;
+                        is_option = true;
+                        break;
+                    }
+                    else if (strcmp(argv[i], OPTION_ALL[j]) == 0)
                     {
                         cmd.is_all = true;
                         is_option = true;
@@ -178,22 +217,27 @@ void handle_args(int argc, char const *argv[])
                         else if (strcmp(cmd.name, COMMAND_ADD) == 0)
                         {
                             printf("%s", USAGE_ADD);
-                            exit(EXIT_FAILURE);
+                            exit(EXIT_SUCCESS);
                         }
                         else if (strcmp(cmd.name, COMMAND_EDIT) == 0)
                         {
                             printf("%s", USAGE_EDIT);
-                            exit(EXIT_FAILURE);
+                            exit(EXIT_SUCCESS);
                         }
                         else if (strcmp(cmd.name, COMMAND_REMOVE) == 0)
                         {
                             printf("%s", USAGE_REMOVE);
-                            exit(EXIT_FAILURE);
+                            exit(EXIT_SUCCESS);
                         }
                         else if (strcmp(cmd.name, COMMAND_LIST) == 0)
                         {
                             printf("%s", USAGE_LIST);
-                            exit(EXIT_FAILURE);
+                            exit(EXIT_SUCCESS);
+                        }
+                        else if (strcmp(cmd.name, COMMAND_DONE) == 0)
+                        {
+                            printf("%s", USAGE_DONE);
+                            exit(EXIT_SUCCESS);
                         }
                     }
                 }
@@ -230,33 +274,27 @@ void handle_args(int argc, char const *argv[])
 
                 strcpy(task.title, argv[i]);
             }
+            else if (strcmp(argv[i], COMMAND_LIST) == 0 ||
+                     strcmp(argv[i], COMMAND_HELP[0]) == 0)
+            {
+                strcpy(cmd.name, argv[i]);
+            }
+            else if (strcmp(argv[i], COMMAND_VERSION[0]) == 0)
+            {
+                printf("%s\n", VERSION);
+                exit(EXIT_SUCCESS);
+            }
             else
             {
-                if (strcmp(argv[i], COMMAND_LIST) == 0)
-                {
-                    strcpy(cmd.name, COMMAND_LIST);
-                }
-                else if (strcmp(argv[i], COMMAND_HELP[0]) == 0)
-                {
-                    strcpy(cmd.name, COMMAND_HELP[0]);
-                }
-                else if (strcmp(argv[i], COMMAND_VERSION[0]) == 0)
-                {
-                    printf("%s\n", VERSION);
-                    exit(EXIT_SUCCESS);
-                }
-                else
-                {
-                    printf("%s: command not found\nUse '%s help' to see available commands.\n",
-                           argv[i], NAME);
-                    exit(EXIT_FAILURE);
-                }
+                printf("%s: command not found\nUse '%s help' to see available commands.\n",
+                       argv[i], NAME);
+                exit(EXIT_FAILURE);
             }
         }
 
-        if (strcmp(cmd.name, COMMAND_LIST) == 0)
+        if (strcmp(cmd.name, COMMAND_LIST) == 0 || cmd.is_done)
         {
-            list_tasks();
+            list_tasks(&cmd);
         }
         else if (strcmp(cmd.name, COMMAND_HELP[0]) == 0)
         {
@@ -269,18 +307,20 @@ void handle_args(int argc, char const *argv[])
     }
     else
     {
-        FILE *fptr = fopen(FILENAME_TASKS, "r");
+        FILE *fptr = fopen(FILENAME_TODO, "r");
 
         if (fptr == NULL)
         {
-            fptr = fopen(FILENAME_TASKS, "w");
+            fptr = fopen(FILENAME_TODO, "w");
+            fclose(fptr);
+            fptr = fopen(FILENAME_DONE, "w");
             fclose(fptr);
 
             printf("%s\n", USAGE);
         }
         else
         {
-            list_tasks();
+            list_tasks(&cmd);
         }
     }
 }
