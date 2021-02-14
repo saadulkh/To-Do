@@ -134,7 +134,7 @@ void handle_args(int argc, char const *argv[])
             {
                 if (!isnull(cmd.name))
                 {
-                    update_tasks(cmd, &task);
+                    update_tasks(&cmd, &task);
                     init_task(&task);
                 }
 
@@ -144,7 +144,7 @@ void handle_args(int argc, char const *argv[])
             {
                 if (task.id != NULL_INT)
                 {
-                    update_tasks(cmd, &task);
+                    update_tasks(&cmd, &task);
                     init_task(&task);
                 }
 
@@ -210,7 +210,7 @@ void handle_args(int argc, char const *argv[])
             {
                 if (!isnull(task.title))
                 {
-                    update_tasks(cmd, &task);
+                    update_tasks(&cmd, &task);
                     int id_task = task.id;
                     init_task(&task);
 
@@ -224,7 +224,7 @@ void handle_args(int argc, char const *argv[])
             {
                 if (!isnull(task.title))
                 {
-                    update_tasks(cmd, &task);
+                    update_tasks(&cmd, &task);
                     init_task(&task);
                 }
 
@@ -264,7 +264,7 @@ void handle_args(int argc, char const *argv[])
         }
         else if (!isnull(cmd.name))
         {
-            update_tasks(cmd, &task);
+            update_tasks(&cmd, &task);
         }
     }
     else

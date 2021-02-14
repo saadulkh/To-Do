@@ -115,22 +115,29 @@ void get_title(char *command, Task *task)
     task->title[title_length] = '\0';
 }
 
-bool validate_task(CMD cmd, Task *task)
+bool validate_task(CMD *cmd, Task *task)
 {
     while (task->id <= 0)
     {
-        if (cmd.is_all)
+        if (strcmp(cmd->name, COMMAND_ADD) == 0)
         {
-            break;
-        }
-        else if (strcmp(cmd.name, COMMAND_ADD) == 0)
-        {
+            if (cmd->is_all)
+            {
+                printf("%s: '--all' option cannot be used with '%s' command.\n", TAG_ERROR, cmd->name);
+                cmd->is_all = false;
+            }
+
             task->id = 0;
             break;
         }
         else
         {
-            get_id(cmd.name, task);
+            if (cmd->is_all)
+            {
+                break;
+            }
+
+            get_id(cmd->name, task);
 
             char exit_cmd[5];
             scanf("%5[^\n]", exit_cmd);
@@ -143,10 +150,10 @@ bool validate_task(CMD cmd, Task *task)
     }
 
     while (isnull(task->title) &&
-           (strcmp(cmd.name, COMMAND_ADD) == 0 ||
-            strcmp(cmd.name, COMMAND_EDIT) == 0))
+           (strcmp(cmd->name, COMMAND_ADD) == 0 ||
+            strcmp(cmd->name, COMMAND_EDIT) == 0))
     {
-        get_title(cmd.name, task);
+        get_title(cmd->name, task);
 
         if (strcmp(task->title, COMMAND_EXIT) == 0)
             return false;
@@ -158,7 +165,7 @@ bool validate_task(CMD cmd, Task *task)
 /**
  * Updates i.e. edits or deletes the existing task from the data file.
 */
-void update_tasks(CMD cmd, Task *task)
+void update_tasks(CMD *cmd, Task *task)
 {
     if (!validate_task(cmd, task))
         return;
@@ -168,57 +175,50 @@ void update_tasks(CMD cmd, Task *task)
     FILE *oldfptr;
     FILE *newfptr;
 
-    if (cmd.is_all)
+    if (cmd->is_all)
     {
-        if (!strcmp(cmd.name, COMMAND_ADD) == 0)
+        oldfptr = fopen(FILENAME_TASKS, "r");
+        newfptr = fopen(FILENAME_TASKS_TEMP, "w");
+
+        // Checking for any error while opening files.
+        if (oldfptr == NULL || newfptr == NULL)
         {
-            oldfptr = fopen(FILENAME_TASKS, "r");
-            newfptr = fopen(FILENAME_TASKS_TEMP, "w");
-
-            // Checking for any error while opening files.
-            if (oldfptr == NULL || newfptr == NULL)
-            {
-                // Displaying error.
-                printf("%s: error while accessing data.\n", TAG_ERROR);
-            }
-
-            for (oldtask.id = 1; fscanf(oldfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
-            {
-                if (strcmp(cmd.name, COMMAND_EDIT) == 0)
-                {
-                    fprintf(newfptr, "%s, \n", task->title);
-
-                    printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
-                           oldtask.title, oldtask.id);
-                }
-                else if (strcmp(cmd.name, COMMAND_REMOVE) == 0)
-                {
-                    printf("[-] Removed task \"%s\" successfully from #%02d.\n",
-                           oldtask.title, oldtask.id);
-                }
-            }
-
-            // Closing the data files to release allocated memory.
-            fclose(oldfptr);
-            fclose(newfptr);
-
-            // Applying changes.
-            remove(FILENAME_TASKS);
-            rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
-        }
-        else
-        {
-            printf("%s: 'all' option cannot be used with '%s' command.\n", TAG_ERROR, COMMAND_ADD);
+            // Displaying error.
+            printf("%s: error while accessing data.\n", TAG_ERROR);
         }
 
-        cmd.is_all = false;
+        for (oldtask.id = 1; fscanf(oldfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
+        {
+            if (strcmp(cmd->name, COMMAND_EDIT) == 0)
+            {
+                fprintf(newfptr, "%s, \n", task->title);
+
+                printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
+                       oldtask.title, oldtask.id);
+            }
+            else if (strcmp(cmd->name, COMMAND_REMOVE) == 0)
+            {
+                printf("[-] Removed task \"%s\" successfully from #%02d.\n",
+                       oldtask.title, oldtask.id);
+            }
+        }
+
+        // Closing the data files to release allocated memory.
+        fclose(oldfptr);
+        fclose(newfptr);
+
+        // Applying changes.
+        remove(FILENAME_TASKS);
+        rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
+
+        cmd->is_all = false;
     }
     else
     {
         // Stores whether any task was updated or not.
         bool is_updated = false;
 
-        if (task->id == 0 && strcmp(cmd.name, COMMAND_ADD) == 0)
+        if (task->id == 0 && strcmp(cmd->name, COMMAND_ADD) == 0)
         {
             oldfptr = fopen(FILENAME_TASKS, "a");
 
@@ -258,7 +258,7 @@ void update_tasks(CMD cmd, Task *task)
                 // Checking whether the current task is to be updated or not.
                 if (oldtask.id == task->id)
                 {
-                    if (strcmp(cmd.name, COMMAND_ADD) == 0)
+                    if (strcmp(cmd->name, COMMAND_ADD) == 0)
                     {
                         fprintf(newfptr, "%s, \n", task->title);
                         fprintf(newfptr, "%s, \n", oldtask.title);
@@ -266,14 +266,14 @@ void update_tasks(CMD cmd, Task *task)
                         printf("[+] Added task \"%s\" successfully at #%02d.\n",
                                task->title, task->id);
                     }
-                    else if (strcmp(cmd.name, COMMAND_EDIT) == 0)
+                    else if (strcmp(cmd->name, COMMAND_EDIT) == 0)
                     {
                         fprintf(newfptr, "%s, \n", task->title);
 
                         printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
                                task->title, task->id);
                     }
-                    else if (strcmp(cmd.name, COMMAND_REMOVE) == 0)
+                    else if (strcmp(cmd->name, COMMAND_REMOVE) == 0)
                     {
                         printf("[-] Removed task \"%s\" successfully from #%02d.\n",
                                oldtask.title, oldtask.id);
@@ -301,14 +301,14 @@ void update_tasks(CMD cmd, Task *task)
         // Checking whether the task was updated or not.
         if (!is_updated)
         {
-            if (strcmp(cmd.name, COMMAND_ADD) == 0)
+            if (strcmp(cmd->name, COMMAND_ADD) == 0)
             {
-                printf("%s: couldn't add task.\n", cmd.name);
+                printf("%s: couldn't add task.\n", cmd->name);
             }
             else
             {
                 // Displaying error msg that no task was found.
-                printf("%s: no task found.\n", cmd.name);
+                printf("%s: no task found.\n", cmd->name);
             }
         }
     }
