@@ -1,6 +1,6 @@
 # To Do Program
 
-A to do program in C.
+A task management program in C.
 
 ## Basic Functionality:
 
