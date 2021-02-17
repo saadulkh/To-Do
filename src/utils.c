@@ -2,6 +2,16 @@
  * This file contains utility functions.
 */
 
+#include <stdio.h>
+#include <string.h>
+
+#define NULL_INT -1
+#define NULL_STR "null"
+
+#define isnull(str) strcmp(str, NULL_STR) == 0
+
+// #define is_smd_type_null(type) strcmp(str, NULL_STR) == 0
+
 /**
  * Writes a line with a character to stdout till the terminal position . 
  * Moves to new line at the end.
@@ -17,8 +27,19 @@ void printcharln(int current_pos, int terminal_pos, char character, char extreme
     {
         printf("%c", current_pos == terminal_pos + 1
                          ? '\n'
-                         : (current_pos == 1 || current_pos == terminal_pos)
-                               ? extreme_char
-                               : character);
+                     : (current_pos == 1 || current_pos == terminal_pos)
+                         ? extreme_char
+                         : character);
     }
 }
+
+// char *command_sign(char *command)
+// {
+//     return strcmp(command, COMMAND_ADD) == 0
+//                ? "+"
+//            : strcmp(command, COMMAND_EDIT) == 0
+//                ? "+/-"
+//            : strcmp(command, COMMAND_REMOVE) == 0
+//                ? "-"
+//                : "~";
+// }
