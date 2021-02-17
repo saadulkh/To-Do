@@ -8,13 +8,19 @@
 #include "utils.c" // Contains utility functions.
 
 // Constant for the filename.
-#define FILENAME_TASKS "tasks.dat"
+#define FILENAME_TODO "todo.dat"
 #define FILENAME_TASKS_TEMP "tasks.tmp"
+#define FILENAME_DONE "done.dat"
 
 #define COMMAND_ADD "add"
 #define COMMAND_EDIT "edit"
 #define COMMAND_REMOVE "remove"
 #define COMMAND_LIST "list"
+#define COMMAND_MARK "mark"
+
+#define MARK_DONE "done"
+#define MARK_TODO "todo"
+
 #define COMMAND_EXIT "exit"
 
 #define TAG_ERROR "error"
@@ -27,6 +33,7 @@ typedef struct cmd_args
 {
     char name[10];
     bool is_all;
+    char mark_option[6];
 } CMD;
 
 typedef struct task_args
@@ -44,18 +51,32 @@ void init_task(Task *task)
 /**
  * Views existing tasks from the data file.
 */
-void list_tasks()
+void list_tasks(CMD *cmd)
 {
     Task task;
 
+    FILE *fptr;
+
     // Opening the data file in read mode & storing its pointer.
-    FILE *fptr = fopen(FILENAME_TASKS, "r");
+    if (strcmp(cmd->mark_option, MARK_DONE) == 0)
+    {
+        fptr = fopen(FILENAME_DONE, "r");
+        
+        printf("List of done tasks:\n");
+    }
+    else
+    {
+        fptr = fopen(FILENAME_TODO, "r");
+
+        printf("List of todo tasks:\n");
+    }
 
     // Checking for any error while opening file.
     if (fptr == NULL)
     {
         // Displaying error.
         printf("%s: error while accessing data.\n", TAG_ERROR);
+        exit(EXIT_FAILURE);
     }
 
     // Displaying top horizontal line of the list.
@@ -121,12 +142,6 @@ bool validate_task(CMD *cmd, Task *task)
     {
         if (strcmp(cmd->name, COMMAND_ADD) == 0)
         {
-            if (cmd->is_all)
-            {
-                printf("%s: '--all' option cannot be used with '%s' command.\n", TAG_ERROR, cmd->name);
-                cmd->is_all = false;
-            }
-
             task->id = 0;
             break;
         }
@@ -162,36 +177,84 @@ bool validate_task(CMD *cmd, Task *task)
     return true;
 }
 
+bool validate_cmd(CMD *cmd)
+{
+    if (strcmp(cmd->name, COMMAND_MARK) == 0 && strcmp(cmd->mark_option, NULL_STR) == 0)
+    {
+        printf("%s: mandatory options are missing.\nUse help command to see available options.\n",
+               cmd->name);
+        return false;
+    }
+
+    return true;
+}
+
 /**
  * Updates i.e. edits or deletes the existing task from the data file.
 */
 void update_tasks(CMD *cmd, Task *task)
 {
+    if (!validate_cmd(cmd))
+        return;
+
     if (!validate_task(cmd, task))
         return;
 
     Task oldtask;
 
-    FILE *oldfptr;
-    FILE *newfptr;
+    FILE *srcfptr;
+    FILE *tempfptr;
+    FILE *destfptr;
+
+    // Stores whether any task was updated or not.
+    bool is_successful = false;
 
     if (cmd->is_all)
     {
-        oldfptr = fopen(FILENAME_TASKS, "r");
-        newfptr = fopen(FILENAME_TASKS_TEMP, "w");
+        tempfptr = fopen(FILENAME_TASKS_TEMP, "w");
+
+        if (strcmp(cmd->mark_option, MARK_DONE) == 0)
+        {
+            srcfptr = fopen(FILENAME_TODO, "r");
+            destfptr = fopen(FILENAME_DONE, "a");
+
+            // Checking for any error while opening files.
+            if (destfptr == NULL)
+            {
+                printf("%s: error while accessing data.\n", TAG_ERROR);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (strcmp(cmd->mark_option, MARK_TODO) == 0)
+        {
+            srcfptr = fopen(FILENAME_DONE, "r");
+            destfptr = fopen(FILENAME_TODO, "a");
+
+            // Checking for any error while opening files.
+            if (destfptr == NULL)
+            {
+                printf("%s: error while accessing data.\n", TAG_ERROR);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            srcfptr = fopen(FILENAME_TODO, "r");
+        }
 
         // Checking for any error while opening files.
-        if (oldfptr == NULL || newfptr == NULL)
+        if (srcfptr == NULL || tempfptr == NULL)
         {
             // Displaying error.
             printf("%s: error while accessing data.\n", TAG_ERROR);
+            exit(EXIT_FAILURE);
         }
 
-        for (oldtask.id = 1; fscanf(oldfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
+        for (oldtask.id = 1; fscanf(srcfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
         {
             if (strcmp(cmd->name, COMMAND_EDIT) == 0)
             {
-                fprintf(newfptr, "%s, \n", task->title);
+                fprintf(tempfptr, "%s, \n", task->title);
 
                 printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
                        oldtask.title, oldtask.id);
@@ -201,115 +264,203 @@ void update_tasks(CMD *cmd, Task *task)
                 printf("[-] Removed task \"%s\" successfully from #%02d.\n",
                        oldtask.title, oldtask.id);
             }
+            else if (strcmp(cmd->name, COMMAND_MARK) == 0)
+            {
+                fprintf(destfptr, "%s, \n", oldtask.title);
+
+                printf("[%s] Marked task \"%s\" as %s successfully.\n",
+                       strcmp(cmd->mark_option, MARK_DONE) == 0
+                           ? "\u2713"
+                           : "~",
+                       oldtask.title,
+                       strcmp(cmd->mark_option, MARK_DONE) == 0
+                           ? "done"
+                           : "todo");
+            }
         }
 
-        // Closing the data files to release allocated memory.
-        fclose(oldfptr);
-        fclose(newfptr);
+        // Storing that the task was updated.
+        is_successful = true;
 
-        // Applying changes.
-        remove(FILENAME_TASKS);
-        rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
-
-        cmd->is_all = false;
-    }
-    else
-    {
-        // Stores whether any task was updated or not.
-        bool is_updated = false;
-
-        if (task->id == 0 && strcmp(cmd->name, COMMAND_ADD) == 0)
+        // Closing the data files to release allocated memory and applying changes.
+        fclose(tempfptr);
+        if (strcmp(cmd->mark_option, MARK_DONE) == 0)
         {
-            oldfptr = fopen(FILENAME_TASKS, "a");
+            fclose(srcfptr);
+            fclose(destfptr);
 
-            // Checking for any error while opening files.
-            if (oldfptr == NULL)
-            {
-                // Displaying error.
-                printf("%s: error while accessing data.\n", TAG_ERROR);
-            }
+            remove(FILENAME_TODO);
+            rename(FILENAME_TASKS_TEMP, FILENAME_TODO);
+        }
+        else if (strcmp(cmd->mark_option, MARK_TODO) == 0)
+        {
+            fclose(srcfptr);
+            fclose(destfptr);
 
-            // Saving task data in the file.
-            fprintf(oldfptr, "%s, \n", task->title);
-
-            printf("[+] Added task \"%s\" successfully at the end of the list.\n", task->title);
-
-            // Storing that the task was updated.
-            is_updated = true;
-
-            // Closing the data files to release allocated memory.
-            fclose(oldfptr);
+            remove(FILENAME_DONE);
+            rename(FILENAME_TASKS_TEMP, FILENAME_DONE);
         }
         else
         {
-            oldfptr = fopen(FILENAME_TASKS, "r");
-            newfptr = fopen(FILENAME_TASKS_TEMP, "w");
+            fclose(srcfptr);
 
-            // Checking for any error while opening files.
-            if (oldfptr == NULL || newfptr == NULL)
-            {
-                // Displaying error.
-                printf("%s: error while accessing data.\n", TAG_ERROR);
-            }
-
-            // Looping to get data from the file till the end of the file.
-            for (oldtask.id = 1; fscanf(oldfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
-            {
-                // Checking whether the current task is to be updated or not.
-                if (oldtask.id == task->id)
-                {
-                    if (strcmp(cmd->name, COMMAND_ADD) == 0)
-                    {
-                        fprintf(newfptr, "%s, \n", task->title);
-                        fprintf(newfptr, "%s, \n", oldtask.title);
-
-                        printf("[+] Added task \"%s\" successfully at #%02d.\n",
-                               task->title, task->id);
-                    }
-                    else if (strcmp(cmd->name, COMMAND_EDIT) == 0)
-                    {
-                        fprintf(newfptr, "%s, \n", task->title);
-
-                        printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
-                               task->title, task->id);
-                    }
-                    else if (strcmp(cmd->name, COMMAND_REMOVE) == 0)
-                    {
-                        printf("[-] Removed task \"%s\" successfully from #%02d.\n",
-                               oldtask.title, oldtask.id);
-                    }
-
-                    // Storing that the task was updated.
-                    is_updated = true;
-                }
-                else
-                {
-                    // Saving current task data in new file.
-                    fprintf(newfptr, "%s, \n", oldtask.title);
-                }
-            }
-
-            // Closing the data files to release allocated memory.
-            fclose(oldfptr);
-            fclose(newfptr);
-
-            // Applying changes.
-            remove(FILENAME_TASKS);
-            rename(FILENAME_TASKS_TEMP, FILENAME_TASKS);
+            remove(FILENAME_TODO);
+            rename(FILENAME_TASKS_TEMP, FILENAME_TODO);
         }
 
-        // Checking whether the task was updated or not.
-        if (!is_updated)
+        cmd->is_all = false;
+    }
+    else if (task->id == 0 && strcmp(cmd->name, COMMAND_ADD) == 0)
+    {
+        srcfptr = fopen(FILENAME_TODO, "a");
+
+        // Checking for any error while opening files.
+        if (srcfptr == NULL)
         {
-            if (strcmp(cmd->name, COMMAND_ADD) == 0)
+            // Displaying error.
+            printf("%s: error while accessing data.\n", TAG_ERROR);
+            exit(EXIT_FAILURE);
+        }
+
+        // Saving task data in the file.
+        fprintf(srcfptr, "%s, \n", task->title);
+
+        printf("[+] Added task \"%s\" successfully at the end of the list.\n", task->title);
+
+        // Storing that the task was updated.
+        is_successful = true;
+
+        // Closing the data files to release allocated memory.
+        fclose(srcfptr);
+    }
+    else
+    {
+        tempfptr = fopen(FILENAME_TASKS_TEMP, "w");
+
+        if (strcmp(cmd->mark_option, MARK_DONE) == 0)
+        {
+            srcfptr = fopen(FILENAME_TODO, "r");
+            destfptr = fopen(FILENAME_DONE, "a");
+
+            // Checking for any error while opening files.
+            if (destfptr == NULL)
             {
-                printf("%s: couldn't add task.\n", cmd->name);
+                printf("%s: error while accessing data.\n", TAG_ERROR);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else if (strcmp(cmd->mark_option, MARK_TODO) == 0)
+        {
+            srcfptr = fopen(FILENAME_DONE, "r");
+            destfptr = fopen(FILENAME_TODO, "a");
+
+            // Checking for any error while opening files.
+            if (destfptr == NULL)
+            {
+                printf("%s: error while accessing data.\n", TAG_ERROR);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            srcfptr = fopen(FILENAME_TODO, "r");
+        }
+
+        // Checking for any error while opening files.
+        if (srcfptr == NULL || tempfptr == NULL)
+        {
+            // Displaying error.
+            printf("%s: error while accessing data.\n", TAG_ERROR);
+            exit(EXIT_FAILURE);
+        }
+
+        // Looping to get data from the file till the end of the file.
+        for (oldtask.id = 1; fscanf(srcfptr, "%60[^,], ", oldtask.title) != EOF; oldtask.id++)
+        {
+            // Checking whether the current task is to be updated or not.
+            if (oldtask.id == task->id)
+            {
+                if (strcmp(cmd->name, COMMAND_ADD) == 0)
+                {
+                    fprintf(tempfptr, "%s, \n", task->title);
+                    fprintf(tempfptr, "%s, \n", oldtask.title);
+
+                    printf("[+] Added task \"%s\" successfully at #%02d.\n",
+                           task->title, task->id);
+                }
+                else if (strcmp(cmd->name, COMMAND_EDIT) == 0)
+                {
+                    fprintf(tempfptr, "%s, \n", task->title);
+
+                    printf("[+/-] Edited task \"%s\" successfully at #%02d.\n",
+                           task->title, task->id);
+                }
+                else if (strcmp(cmd->name, COMMAND_REMOVE) == 0)
+                {
+                    printf("[-] Removed task \"%s\" successfully from #%02d.\n",
+                           oldtask.title, oldtask.id);
+                }
+                else if (strcmp(cmd->name, COMMAND_MARK) == 0)
+                {
+                    fprintf(destfptr, "%s, \n", oldtask.title);
+
+                    printf("[%s] Marked task \"%s\" as %s successfully.\n",
+                           strcmp(cmd->mark_option, MARK_DONE) == 0
+                               ? "\u2713"
+                               : "~",
+                           oldtask.title,
+                           strcmp(cmd->mark_option, MARK_DONE) == 0
+                               ? "done"
+                               : "todo");
+                }
+
+                // Storing that the task was updated.
+                is_successful = true;
             }
             else
             {
-                // Displaying error msg that no task was found.
-                printf("%s: no task found.\n", cmd->name);
+                fprintf(tempfptr, "%s, \n", oldtask.title);
             }
+        }
+
+        // Closing the data files to release allocated memory and applying changes.
+        fclose(tempfptr);
+        if (strcmp(cmd->mark_option, MARK_DONE) == 0)
+        {
+            fclose(srcfptr);
+            fclose(destfptr);
+
+            remove(FILENAME_TODO);
+            rename(FILENAME_TASKS_TEMP, FILENAME_TODO);
+        }
+        else if (strcmp(cmd->mark_option, MARK_TODO) == 0)
+        {
+            fclose(srcfptr);
+            fclose(destfptr);
+
+            remove(FILENAME_DONE);
+            rename(FILENAME_TASKS_TEMP, FILENAME_DONE);
+        }
+        else
+        {
+            fclose(srcfptr);
+
+            remove(FILENAME_TODO);
+            rename(FILENAME_TASKS_TEMP, FILENAME_TODO);
+        }
+    }
+
+    // Checking whether the task was updated or not.
+    if (!is_successful)
+    {
+        if (strcmp(cmd->name, COMMAND_ADD) == 0)
+        {
+            printf("%s: couldn't add task.\n", cmd->name);
+        }
+        else
+        {
+            // Displaying error msg that no task was found.
+            printf("%s: no task found.\n", cmd->name);
         }
     }
 }
