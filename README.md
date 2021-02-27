@@ -10,9 +10,14 @@ A task management program in C.
  - Mark tasks as done or todo
  - Delete existing tasks
 
+## HOW TO USE?
+
+Open the terminal inside the cloned folder and run `gcc -o todo src/main.c` to compile the code.
+Type `./todo` in the terminal to see todo tasks.
+
 ## Usage:
 
-Use `todo help` to see usage.
+Use `./todo help` to see usage.
 
 ### Commands:
 
@@ -39,4 +44,4 @@ Use `todo help` to see usage.
 | -v --version        | See version of todo |
 | -h --help           | See this help |
 
-Use `todo help <command>` to see help for any command.
+Use `./todo help <command>` to see help for any command.

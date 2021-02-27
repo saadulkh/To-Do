@@ -37,7 +37,7 @@ const char OPTION_HELP[2][7] = {"-h", "--help"};
 #define USAGE_OPTION_VERSION "-v --version    See version of " NAME "."
 #define USAGE_OPTION_HELP "-h --help       See this help."
 
-#define USAGE_ADD "Usage: " NAME " " COMMAND_ADD " [options...]\n\
+#define USAGE_ADD "Usage: ./" NAME " " COMMAND_ADD " [options...]\n\
 \n\
 Command\n\
    " USAGE_COMMAND_ADD "\n\
@@ -47,7 +47,7 @@ Options\n\
     " USAGE_OPTION_TITLE "\n\
     " USAGE_OPTION_HELP "\n"
 
-#define USAGE_EDIT "Usage: " NAME " " COMMAND_EDIT " [options...]\n\
+#define USAGE_EDIT "Usage: ./" NAME " " COMMAND_EDIT " [options...]\n\
 \n\
 Command\n\
    " USAGE_COMMAND_EDIT "\n\
@@ -58,7 +58,7 @@ Options\n\
     " USAGE_OPTION_ALL "\n\
     " USAGE_OPTION_HELP "\n"
 
-#define USAGE_REMOVE "Usage: " NAME " " COMMAND_REMOVE " [options...]\n\
+#define USAGE_REMOVE "Usage: ./" NAME " " COMMAND_REMOVE " [options...]\n\
 \n\
 Command\n\
    " USAGE_COMMAND_REMOVE "\n\
@@ -68,7 +68,7 @@ Options\n\
     " USAGE_OPTION_ALL "\n\
     " USAGE_OPTION_HELP "\n"
 
-#define USAGE_LIST "Usage: " NAME " " COMMAND_LIST " [options...]\n\
+#define USAGE_LIST "Usage: ./" NAME " " COMMAND_LIST " [options...]\n\
 \n\
 Command\n\
    " USAGE_COMMAND_LIST "\n\
@@ -78,7 +78,7 @@ Options\n\
     " USAGE_OPTION_TODO "\n\
     " USAGE_OPTION_HELP "\n"
 
-#define USAGE_MARK "Usage: " NAME " " COMMAND_MARK " [options...]\n\
+#define USAGE_MARK "Usage: ./" NAME " " COMMAND_MARK " [options...]\n\
 \n\
 Command\n\
    " USAGE_COMMAND_MARK "\n\
@@ -90,7 +90,7 @@ Options\n\
     " USAGE_OPTION_ALL "\n\
     " USAGE_OPTION_HELP "\n"
 
-#define USAGE "Usage: " NAME " [--help], [-h],\n\
+#define USAGE "Usage: ./" NAME " [--help], [-h],\n\
             [--version], [-v],\n\
             <command> [options...]\n\
 \n\
@@ -113,7 +113,7 @@ Options\n\
     " USAGE_OPTION_VERSION "\n\
     " USAGE_OPTION_HELP "\n\
 \n\
-Use '" NAME " help <command>' to see help for any command.\n"
+Use './" NAME " help <command>' to see help for any command.\n"
 
 void handle_args(int argc, char const *argv[])
 {
@@ -154,7 +154,7 @@ void handle_args(int argc, char const *argv[])
                 }
                 else
                 {
-                    printf("%s: command not found\nUse '%s help' to see available commands.\n",
+                    printf("%s: command not found\nUse './%s help' to see available commands.\n",
                            argv[i], NAME);
                 }
 
@@ -278,7 +278,7 @@ void handle_args(int argc, char const *argv[])
 
                 if (!is_option)
                 {
-                    printf("%s: option not available\nUse '%s help %s' to see available options.\n",
+                    printf("%s: option not available\nUse './%s help %s' to see available options.\n",
                            argv[i], NAME, !isnull(cmd.name) ? cmd.name : "\b");
 
                     exit(EXIT_FAILURE);
@@ -320,7 +320,7 @@ void handle_args(int argc, char const *argv[])
             }
             else
             {
-                printf("%s: command not found\nUse '%s help' to see available commands.\n",
+                printf("%s: command not found\nUse './%s help' to see available commands.\n",
                        argv[i], NAME);
                 exit(EXIT_FAILURE);
             }
